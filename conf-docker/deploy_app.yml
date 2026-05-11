@@ -1,0 +1,50 @@
+---
+- name: Déploiement de l'application ApiMobileAuto
+  hosts: all
+  become: yes
+  tasks:
+
+    - name: Créer le répertoire de l'application
+      file:
+        path: /opt/monapp
+        state: directory
+        mode: '0755'
+
+    - name: Créer le dossier ansible_storage
+      file:
+        path: /opt/ansible_storage
+        state: directory
+        mode: '0777'
+
+    - name: Créer le dossier pki_storage
+      file:
+        path: /opt/pki_storage
+        state: directory
+        mode: '0777'
+
+    - name: Copier le fichier .env
+      copy:
+        src: .env
+        dest: /opt/monapp/.env
+        mode: '0600'
+
+    - name: Copier le fichier docker-compose.yml
+      copy:
+        src: docker-compose.yml
+        dest: /opt/monapp/docker-compose.yml
+        mode: '0644'
+
+    - name: Démarrer les conteneurs Docker
+      command: docker compose up -d
+      args:
+        chdir: /opt/monapp
+
+    - name: Vérifier que les conteneurs tournent
+      command: docker compose ps
+      args:
+        chdir: /opt/monapp
+      register: docker_ps
+
+    - name: Afficher le statut des conteneurs
+      debug:
+        msg: "{{ docker_ps.stdout }}"

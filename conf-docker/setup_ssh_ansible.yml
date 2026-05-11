@@ -1,0 +1,45 @@
+---
+- name: Configuration SSH pour Ansible
+  hosts: all
+  become: yes
+  tasks:
+
+    - name: Créer le dossier .ssh pour root
+      file:
+        path: /root/.ssh
+        state: directory
+        mode: '0700'
+        owner: root
+        group: root
+
+    - name: Générer la paire de clés SSH pour Ansible
+      command: ssh-keygen -t ed25519 -f /root/.ssh/ansible_key -N ""
+      args:
+        creates: /root/.ssh/ansible_key
+
+    - name: Lire la clé publique générée
+      slurp:
+        src: /root/.ssh/ansible_key.pub
+      register: public_key
+
+    - name: Ajouter la clé publique dans authorized_keys
+      authorized_key:
+        user: root
+        key: "{{ public_key.content | b64decode }}"
+        state: present
+
+    - name: Donner les bonnes permissions à authorized_keys
+      file:
+        path: /root/.ssh/authorized_keys
+        mode: '0600'
+        owner: root
+        group: root
+
+    - name: Tester la connexion SSH vers 172.17.0.1
+      command: ssh -i /root/.ssh/ansible_key -o StrictHostKeyChecking=no root@172.17.0.1 "echo CONNEXION OK"
+      register: ssh_test
+      ignore_errors: yes
+
+    - name: Afficher le résultat du test SSH
+      debug:
+        msg: "{{ ssh_test.stdout }}"

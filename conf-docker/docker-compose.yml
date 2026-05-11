@@ -1,0 +1,36 @@
+services:
+  api-dnsmasq:
+    image: ghcr.io/charliewalker-art/apimobileauto:latest
+    container_name: api-mobile-auto-container
+    pull_policy: always
+    ports:
+      - "8080:8080"
+    env_file:
+      - /opt/monapp/.env
+    volumes:
+      - /opt/ansible_storage:/opt/ansible_storage
+      - /root/.ssh/ansible_key:/root/.ssh/ansible_key:ro
+      - /opt/pki_storage:/opt/pki_storage
+    depends_on:
+      db-mysql:
+        condition: service_healthy
+
+  db-mysql:
+    image: mysql:8.0
+    container_name: mysql-db-api
+    environment:
+      - MYSQL_ROOT_PASSWORD=${DB_PASS}
+      - MYSQL_DATABASE=${DB_NAME}
+    ports:
+      - "3306:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 5s
+      retries: 10
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+volumes:
+  mysql_data:
+
+
